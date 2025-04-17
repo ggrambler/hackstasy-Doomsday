@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Stress Management{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-green-500 to-teal-500 rounded-lg shadow-lg text-white p-6">
+        <h1 class="text-3xl font-bold mb-2">Stress Management</h1>
+        <p class="text-lg opacity-90">Discover techniques and exercises to help manage stress and anxiety.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Meditation Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center mb-6">
+                <i class="fas fa-om text-2xl text-green-600 mr-3"></i>
+                <h2 class="text-2xl font-semibold">Meditation</h2>
+            </div>
+            
+            <div class="space-y-6">
+                {% for audio in audio_files %}
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="font-medium mb-2">{{ audio.name|title }}</h3>
+                    <audio controls class="w-full">
+                        <source src="{{ audio.url }}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-6 bg-green-50 rounded-lg p-4">
+                <h3 class="font-medium text-green-800 mb-2">Meditation Tips</h3>
+                <ul class="list-disc list-inside text-green-700 space-y-2">
+                    {% for tip in meditation_tips %}
+                    <li>{{ tip }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Breathing Exercises -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center mb-6">
+                <i class="fas fa-wind text-2xl text-blue-600 mr-3"></i>
+                <h2 class="text-2xl font-semibold">Breathing Exercises</h2>
+            </div>
+
+            <div class="space-y-6">
+                {% for exercise in breathing_exercises %}
+                <div class="relative">
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-medium mb-2">{{ exercise.name }}</h3>
+                        <p class="text-gray-600 mb-2">{{ exercise.description }}</p>
+                        <p class="text-sm text-gray-500">Duration: {{ exercise.duration }}</p>
+                        
+                        <button onclick="startBreathingExercise('{{ exercise.name }}')" 
+                            class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                            Start Exercise
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Breathing Exercise Modal -->
+                <div id="breathingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+                    <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                        <div class="text-center">
+                            <h3 id="exerciseTitle" class="text-xl font-semibold mb-4"></h3>
+                            <div id="breathingCircle" class="w-40 h-40 mx-auto rounded-full border-4 border-blue-500 flex items-center justify-center mb-4">
+                                <span id="breathingText" class="text-2xl font-bold text-blue-600">Inhale</span>
+                            </div>
+                            <p id="breathingInstruction" class="text-gray-600 mb-4"></p>
+                            <button onclick="closeBreathingExercise()" 
+                                class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                                End Exercise
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Resources -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex items-center mb-6">
+            <i class="fas fa-book text-2xl text-purple-600 mr-3"></i>
+            <h2 class="text-2xl font-semibold">Additional Resources</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="bg-purple-50 rounded-lg p-4">
+                <h3 class="font-medium text-purple-800 mb-2">Physical Exercise</h3>
+                <p class="text-purple-700">Regular physical activity can help reduce stress and improve mood. Try activities like walking, yoga, or swimming.</p>
+            </div>
+
+            <div class="bg-purple-50 rounded-lg p-4">
+                <h3 class="font-medium text-purple-800 mb-2">Healthy Sleep Habits</h3>
+                <p class="text-purple-700">Maintain a regular sleep schedule and create a relaxing bedtime routine to improve sleep quality.</p>
+            </div>
+
+            <div class="bg-purple-50 rounded-lg p-4">
+                <h3 class="font-medium text-purple-800 mb-2">Mindful Activities</h3>
+                <p class="text-purple-700">Engage in activities like journaling, art, or gardening to practice mindfulness and reduce stress.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+let breathingInterval;
+
+function startBreathingExercise(exerciseName) {
+    const modal = document.getElementById('breathingModal');
+    const title = document.getElementById('exerciseTitle');
+    const circle = document.getElementById('breathingCircle');
+    const text = document.getElementById('breathingText');
+    const instruction = document.getElementById('breathingInstruction');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    title.textContent = exerciseName;
+
+    let phase = 'inhale';
+    let count = 4;
+
+    function updateBreathing() {
+        if (exerciseName === 'Box Breathing') {
+            switch(phase) {
+                case 'inhale':
+                    text.textContent = 'Inhale';
+                    instruction.textContent = `Inhale for ${count} seconds`;
+                    circle.style.transform = 'scale(1.2)';
+                    if (count === 0) {
+                        phase = 'hold1';
+                        count = 4;
+                    }
+                    break;
+                case 'hold1':
+                    text.textContent = 'Hold';
+                    instruction.textContent = `Hold for ${count} seconds`;
+                    if (count === 0) {
+                        phase = 'exhale';
+                        count = 4;
+                    }
+                    break;
+                case 'exhale':
+                    text.textContent = 'Exhale';
+                    instruction.textContent = `Exhale for ${count} seconds`;
+                    circle.style.transform = 'scale(1)';
+                    if (count === 0) {
+                        phase = 'hold2';
+                        count = 4;
+                    }
+                    break;
+                case 'hold2':
+                    text.textContent = 'Hold';
+                    instruction.textContent = `Hold for ${count} seconds`;
+                    if (count === 0) {
+                        phase = 'inhale';
+                        count = 4;
+                    }
+                    break;
+            }
+        } else if (exerciseName === '4-7-8 Breathing') {
+            switch(phase) {
+                case 'inhale':
+                    text.textContent = 'Inhale';
+                    instruction.textContent = `Inhale for ${count} seconds`;
+                    circle.style.transform = 'scale(1.2)';
+                    if (count === 0) {
+                        phase = 'hold';
+                        count = 7;
+                    }
+                    break;
+                case 'hold':
+                    text.textContent = 'Hold';
+                    instruction.textContent = `Hold for ${count} seconds`;
+                    if (count === 0) {
+                        phase = 'exhale';
+                        count = 8;
+                    }
+                    break;
+                case 'exhale':
+                    text.textContent = 'Exhale';
+                    instruction.textContent = `Exhale for ${count} seconds`;
+                    circle.style.transform = 'scale(1)';
+                    if (count === 0) {
+                        phase = 'inhale';
+                        count = 4;
+                    }
+                    break;
+            }
+        } else {
+            // Deep Breathing
+            switch(phase) {
+                case 'inhale':
+                    text.textContent = 'Inhale';
+                    instruction.textContent = 'Inhale deeply through your nose';
+                    circle.style.transform = 'scale(1.2)';
+                    if (count === 0) {
+                        phase = 'exhale';
+                        count = 4;
+                    }
+                    break;
+                case 'exhale':
+                    text.textContent = 'Exhale';
+                    instruction.textContent = 'Exhale slowly through your mouth';
+                    circle.style.transform = 'scale(1)';
+                    if (count === 0) {
+                        phase = 'inhale';
+                        count = 4;
+                    }
+                    break;
+            }
+        }
+        count--;
+    }
+
+    breathingInterval = setInterval(updateBreathing, 1000);
+    updateBreathing();
+}
+
+function closeBreathingExercise() {
+    clearInterval(breathingInterval);
+    const modal = document.getElementById('breathingModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+</script>
+{% endblock %}
+{% endblock %}

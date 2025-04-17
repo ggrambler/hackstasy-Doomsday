@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThinkBot - {% block title %}Holistic Health Support{% endblock %}</title>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        [x-cloak] { display: none !important; }
+        .form-input {
+            @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm;
+        }
+        .btn-primary {
+            @apply bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors;
+        }
+        .btn-secondary {
+            @apply bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-indigo-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="{% url 'index' %}" class="flex items-center space-x-2">
+                        <i class="fas fa-brain text-2xl"></i>
+                        <span class="font-bold text-xl">ThinkBot</span>
+                    </a>
+                </div>
+                {% if user.is_authenticated %}
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="{% url 'index' %}" class="hover:text-indigo-200 px-3 py-2 rounded-md">Home</a>
+                    <a href="{% url 'mood_tracker' %}" class="hover:text-indigo-200 px-3 py-2 rounded-md">Mood Tracker</a>
+                    <a href="{% url 'stress_management' %}" class="hover:text-indigo-200 px-3 py-2 rounded-md">Stress Management</a>
+                    <a href="{% url 'daily_journal' %}" class="nav-link">Daily Journal</a>
+                    <a href="{% url 'group_chat' %}" class="hover:text-indigo-200 px-3 py-2 rounded-md">Mental Health Consultancy</a> <!-- New Link -->
+                    <a href="{% url 'group_chat' %}" class="hover:underline">Community Forums</a>
+                    <div class="relative" x-data="{ open: false }" @click.away="open = false" @keydown.escape.window="open = false">
+                        <button @click="open = !open" 
+                                class="flex items-center space-x-1 hover:text-indigo-200 px-3 py-2 rounded-md"
+                                :class="{ 'bg-indigo-700': open }">
+                                {% if user.profile.avatar %}
+                                    <img src="{{ user.profile.avatar.url }}" alt="Profile Picture" class="w-14 h-14 rounded-full object-cover border-4 border-white">
+                            {% else %}
+                <div class="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center border-4 border-white">
+                    <i class="fas fa-user text-4xl text-gray-400"></i>
+                </div>
+            {% endif %}    
+                            <span>{{ user.username }}</span>
+                            <i class="fas fa-chevron-down text-xs" :class="{ 'transform rotate-180': open }"></i>
+                        </button>
+                        <div x-show="open"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95"
+                             class="absolute right-0 w-48 py-2 mt-2 bg-white rounded-md shadow-xl z-50">
+                            <a href="{% url 'profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-500 hover:text-white">
+                                <i class="fas fa-user mr-2"></i>Profile
+                            </a>
+                            <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-500 hover:text-white">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button type="button" class="mobile-menu-button p-2 rounded-md hover:bg-indigo-500 focus:outline-none">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+                {% else %}
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'login' %}" class="hover:text-indigo-200 px-3 py-2 rounded-md">Login</a>
+                    <a href="{% url 'register' %}" class="bg-white text-indigo-600 px-4 py-2 rounded-md hover:bg-indigo-100">Register</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Mobile menu -->
+        {% if user.is_authenticated %}
+        <div class="md:hidden hidden mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="{% url 'index' %}" class="block px-3 py-2 rounded-md hover:bg-indigo-500">Home</a>
+                <a href="{% url 'mood_tracker' %}" class="block px-3 py-2 rounded-md hover:bg-indigo-500">Mood Tracker</a>
+                <a href="{% url 'stress_management' %}" class="block px-3 py-2 rounded-md hover:bg-indigo-500">Stress Management</a>
+                <a href="{% url 'group_chat' %}" class="block px-3 py-2 rounded-md hover:bg-indigo-500">Mental Health Consultancy</a> <!-- New Link -->
+                <a href="{% url 'profile' %}" class="block px-3 py-2 rounded-md hover:bg-indigo-500">Profile</a>
+                <a href="{% url 'logout' %}" class="block px-3 py-2 rounded-md hover:bg-indigo-500">Logout</a>
+            </div>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 mt-4">
+        {% for message in messages %}
+        <div class="p-4 rounded-md {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %} mb-4">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+        <!-- Chatbot Sidebar -->
+        {% if user.is_authenticated %}
+        <div id="chatbot-sidebar" class="fixed inset-0 bg-gray-800 bg-opacity-75 z-50 hidden">
+           <div class="absolute right-0 w-[40rem] bg-white h-full shadow-lg">
+               <div class="flex justify-between items-center p-4 border-b">
+                   <h2 class="text-lg font-bold">Chat with ThinkBot</h2>
+                   <button id="close-chatbot" class="text-gray-500 hover:text-gray-700">
+                       <i class="fas fa-times"></i>
+                   </button>
+               </div>
+
+           </div>
+       </div>
+       
+       <!-- Button to Open Chatbot -->
+       <button id="open-chatbot" class="fixed bottom-4 right-4 bg-indigo-600 text-white p-3 rounded-full shadow-lg">
+           <i class="fas fa-comments"></i>
+       </button>
+       {% endif %}
+    </main>
+    <footer class="bg-gray-800 text-white py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">About ThinkBot</h3>
+                    <p class="text-gray-400">A health support platform designed for mental well-being management by helping you track your mood, manage stress, and find emotional support.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'index' %}" class="text-gray-400 hover:text-white">Home</a></li>
+                        <li><a href="{% url 'mood_tracker' %}" class="text-gray-400 hover:text-white">Mood Tracker</a></li>
+                        <li><a href="{% url 'stress_management' %}" class="text-gray-400 hover:text-white">Stress Management</a></li>
+                        <li><a href="{% url 'group_chat' %}" class="text-gray-400 hover:text-white">Mental Health Consultancy</a></li>
+                        <li><a href="{% url 'group_chat' %}" class="text-gray-400 hover:text-white">People's Chat Arena</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Emergency Contacts</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>Emergency: 102</li>
+                        <li>Crisis Helpline: 112</li>
+                        <li>National Suicide Prevention Lifeline: 1-800-273-8255</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
+                <p>&copy; {% now "Y" %} ThinkBot. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.querySelector('.mobile-menu-button').addEventListener('click', function() {
+            document.querySelector('.mobile-menu').classList.toggle('hidden');
+        });
+        document.getElementById('open-chatbot').addEventListener('click', function() {
+                document.getElementById('chatbot-sidebar').classList.remove('hidden');
+            });
+        
+        document.getElementById('close-chatbot').addEventListener('click', function() {
+                document.getElementById('chatbot-sidebar').classList.add('hidden');
+            });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

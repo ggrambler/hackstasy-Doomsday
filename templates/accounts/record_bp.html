@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto p-8">
+    <h1 class="text-4xl font-extrabold text-center text-indigo-600 mb-8">Record Blood Pressure</h1>
+    <form method="post" class="bg-white p-6 rounded-lg shadow-md">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+            Save
+        </button>
+    </form>
+</div>
+{% endblock %}

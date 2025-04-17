@@ -1,0 +1,551 @@
+{% extends 'base.html' %}
+{% load mood_filters %}
+
+{% block title %}Mood Tracker{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
+<style>
+    .slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 8px;
+        border-radius: 5px;
+        background: #d3d3d3;
+        outline: none;
+    }
+
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgb(59, 130, 246);
+        cursor: pointer;
+    }
+
+    .slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgb(59, 130, 246);
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg text-white p-6">
+        <h1 class="text-3xl font-bold mb-2">Mood Tracker</h1>
+        <p class="text-lg opacity-90">Track your emotional well-being and identify patterns over time.</p>
+    </div>
+
+    <!-- Insights Section -->
+    {% if insights %}
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Your Mood Insights</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Average Scores -->
+            <div class="space-y-4">
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-sm text-gray-600">Average Mood</div>
+                    <div class="text-2xl font-bold text-indigo-600">{{ insights.avg_mood|floatformat:1 }}/5</div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-sm text-gray-600">Average Energy</div>
+                    <div class="text-2xl font-bold text-green-600">{{ insights.avg_energy|floatformat:1 }}/5</div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-sm text-gray-600">Average Stress</div>
+                    <div class="text-2xl font-bold text-red-600">{{ insights.avg_stress|floatformat:1 }}/5</div>
+                </div>
+            </div>
+
+            <!-- Activity Analysis -->
+            <div class="space-y-4">
+                <h3 class="font-medium text-gray-900">Activities Impact</h3>
+                {% if insights.good_mood_activities %}
+                <div>
+                    <div class="text-sm text-gray-600 mb-2">Activities during good moods:</div>
+                    <ul class="list-disc pl-5 space-y-1">
+                        {% for activity in insights.good_mood_activities %}
+                        <li class="text-green-600">{{ activity.activities }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                {% if insights.bad_mood_activities %}
+                <div>
+                    <div class="text-sm text-gray-600 mb-2">Activities during low moods:</div>
+                    <ul class="list-disc pl-5 space-y-1">
+                        {% for activity in insights.bad_mood_activities %}
+                        <li class="text-red-600">{{ activity.activities }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sleep Analysis -->
+            <div>
+                <h3 class="font-medium text-gray-900 mb-4">Sleep Deficiency</h3>
+                {% if insights.sleep_mood_correlation %}
+                <div class="space-y-3">
+                    {% for hours, mood in insights.sleep_mood_correlation.items %}
+                    <div>
+                        <div class="text-sm text-gray-600">{{ hours }}</div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-indigo-600 h-2 rounded-full" style="width: {{ mood|multiply:20 }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mood Input Section -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">How are you feeling today?</h2>
+        <form id="moodForm" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Mood Selection -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select your mood</label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                    <button type="button" class="mood-btn p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 focus:outline-none focus:border-blue-500 transition-colors" data-mood="Very Happy">
+                        <div class="text-4xl mb-2">😊</div>
+                        <div class="text-sm font-medium">Very Happy</div>
+                    </button>
+                    <button type="button" class="mood-btn p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 focus:outline-none focus:border-blue-500 transition-colors" data-mood="Happy">
+                        <div class="text-4xl mb-2">🙂</div>
+                        <div class="text-sm font-medium">Happy</div>
+                    </button>
+                    <button type="button" class="mood-btn p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 focus:outline-none focus:border-blue-500 transition-colors" data-mood="Neutral">
+                        <div class="text-4xl mb-2">😐</div>
+                        <div class="text-sm font-medium">Neutral</div>
+                    </button>
+                    <button type="button" class="mood-btn p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 focus:outline-none focus:border-blue-500 transition-colors" data-mood="Sad">
+                        <div class="text-4xl mb-2">😔</div>
+                        <div class="text-sm font-medium">Sad</div>
+                    </button>
+                    <button type="button" class="mood-btn p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 focus:outline-none focus:border-blue-500 transition-colors" data-mood="Very Sad">
+                        <div class="text-4xl mb-2">😢</div>
+                        <div class="text-sm font-medium">Very Sad</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Activities -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">What have you been doing?</label>
+                <select name="activities" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for value, label in mood_entry.ACTIVITY_CHOICES %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- Sleep Hours -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">How much did you sleep last night?</label>
+                <select name="sleep_hours" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    {% for value, label in mood_entry.SLEEP_CHOICES %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Energy Level -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Energy Level</label>
+                <input type="range" name="energy_level" min="1" max="5" value="3" class="slider" id="energySlider">
+                <div class="flex justify-between text-xs text-gray-600 mt-1">
+                    <span>Very Low</span>
+                    <span>Low</span>
+                    <span>Normal</span>
+                    <span>High</span>
+                    <span>Very High</span>
+                </div>
+            </div>
+
+            <!-- Stress Level -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Stress Level</label>
+                <input type="range" name="stress_level" min="1" max="5" value="3" class="slider" id="stressSlider">
+                <div class="flex justify-between text-xs text-gray-600 mt-1">
+                    <span>Very Low</span>
+                    <span>Low</span>
+                    <span>Normal</span>
+                    <span>High</span>
+                    <span>Very High</span>
+                </div>
+            </div>
+
+            <!-- Note -->
+            <div>
+                <label for="note" class="block text-sm font-medium text-gray-700 mb-2">Add a note (optional)</label>
+                <textarea id="note" name="note" rows="3" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md" placeholder="How was your day? What made you feel this way?"></textarea>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                    Save Entry
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Mood History -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-semibold">Your Mood History</h2>
+            <div class="flex items-center space-x-4">
+                <select id="timeRange" class="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="week">Last 7 days</option>
+                    <option value="month">Last 30 days</option>
+                    <option value="all">All time</option>
+                </select>
+                <a href="{% url 'export_mood_data' %}" class="text-blue-600 hover:text-blue-800 flex items-center">
+                    <i class="fas fa-download mr-2"></i>
+                    Export Data
+                </a>
+            </div>
+        </div>
+        <div class="h-64 mb-6">
+            <canvas id="moodChart"></canvas>
+        </div>
+        <div id="moodEntries" class="space-y-4">
+            <!-- Mood entries will be populated here -->
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+// Form validation
+function validateForm(formData) {
+    const errors = [];
+    const mood = formData.get('mood');
+    const activities = formData.get('activities');
+    const sleep_hours = formData.get('sleep_hours');
+    const energy_level = formData.get('energy_level');
+    const stress_level = formData.get('stress_level');
+    
+    if (!mood || mood === 'null') {
+        errors.push('Please select your mood');
+        document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.add('border-red-500'));
+        setTimeout(() => {
+            document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('border-red-500'));
+        }, 2000);
+    }
+    if (!activities) errors.push('Please select an activity');
+    if (!sleep_hours) errors.push('Please select sleep hours');
+    if (!energy_level) errors.push('Please select energy level');
+    if (!stress_level) errors.push('Please select stress level');
+    
+    return errors;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    let selectedMood = null;
+    let currentData = [];
+    const moodButtons = document.querySelectorAll('.mood-btn');
+    const moodForm = document.getElementById('moodForm');
+    const timeRange = document.getElementById('timeRange');
+    const ctx = document.getElementById('moodChart').getContext('2d');
+    let moodChart = null;
+    const moodDataCache = new Map();
+
+    // Mood button selection
+    moodButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            moodButtons.forEach(btn => btn.classList.remove('border-blue-500'));
+            this.classList.add('border-blue-500');
+            selectedMood = this.dataset.mood;
+        });
+    });
+
+    // Time range change
+    timeRange.addEventListener('change', function() {
+        loadMoodData(this.value);
+    });
+
+    // Form submission with validation
+    moodForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        formData.append('mood', selectedMood);
+        
+        const errors = validateForm(formData);
+        if (errors.length > 0) {
+            showNotification(errors.join('\n'), 'error');
+            return;
+        }
+
+        const submitButton = document.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+
+        // Add location if available
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                formData.append('location', `${position.coords.latitude},${position.coords.longitude}`);
+                submitForm(formData, submitButton, originalText);
+            }, function(error) {
+                submitForm(formData, submitButton, originalText);
+            });
+        } else {
+            submitForm(formData, submitButton, originalText);
+        }
+    });
+
+    function submitForm(formData, submitButton, originalText) {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="inline-flex items-center"><svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Saving...</span>';
+
+        fetch('{% url "add_mood" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Update the UI with the new entry data
+                currentData.unshift(data.data);
+                updateChart(currentData);
+                updateMoodEntries(currentData);
+                
+                // Reset form
+                moodForm.reset();
+                selectedMood = null;
+
+                // Show success message
+                showNotification('Mood entry saved successfully!', 'success');
+            } else {
+                showNotification('Failed to save mood entry', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('An error occurred while saving your mood entry'+error, 'error');
+            
+            // Reset button state
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+        });
+    }
+
+    function loadMoodData(range = 'week') {
+        const cacheKey = `mood_data_${range}`;
+        if (moodDataCache.has(cacheKey)) {
+            const cachedData = moodDataCache.get(cacheKey);
+        const cacheTime =30 * 1000; // 5 minutes
+
+        if (cachedData && (Date.now() - cachedData.timestamp) < cacheTime) {
+                currentData = cachedData.data;
+                updateChart(cachedData.data);
+                updateMoodEntries(cachedData.data);
+                return;
+            }
+        }
+        fetch(`{% url "get_mood_data" %}?range=${range}`)
+            .then(response => response.json())
+            .then(data => {
+                currentData = data;
+                moodDataCache.set(cacheKey, { data, timestamp: Date.now() });
+                updateChart(data);
+                updateMoodEntries(data);
+            })
+            .catch(error => {
+                showNotification('Failed to load mood data'+error, 'error');
+            });
+    }
+
+    function updateChart(data) {
+        if (moodChart) moodChart.destroy();
+        const chartData = [...data].reverse();
+
+        const dates = chartData.map(entry => new Date(entry.date).toLocaleString());
+        const moods = chartData.map(entry => entry.mood === 'Very Happy' ? 5 :
+            entry.mood === 'Happy' ? 4 :
+            entry.mood === 'Neutral' ? 3 :
+            entry.mood === 'Sad' ? 2 : 1);
+        const energy = chartData.map(entry => entry.energy_level);
+        const stress = chartData.map(entry => entry.stress_level);
+        moodChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Mood',
+                        data: moods,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.1,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Energy',
+                        data: energy,
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.1,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Stress',
+                        data: stress,
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.1,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            afterBody: function(context) {
+                                const index = context[0].dataIndex;
+                                const entry = chartData[index];
+                                return [
+                                    '',
+                                    `Activities: ${entry.activities}`,
+                                    `Sleep: ${entry.sleep_hours}`,
+                                    entry.location ? `Location: ${entry.location}` : '',
+                                    entry.note ? `Note: ${entry.note}` : ''
+                                ].filter(Boolean);
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        min: 1,
+                        max: 5,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value + '/5';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Update mood entries list
+    function updateMoodEntries(data) {
+        const container = document.getElementById('moodEntries');
+        container.innerHTML = '';
+
+        data.slice(0, 5).forEach(entry => {
+            const date = new Date(entry.date).toLocaleDateString();
+            const time = new Date(entry.date).toLocaleTimeString();
+            
+            // Create a detailed note combining all information
+            const detailedNote = [
+                entry.note,
+                `Activities: ${entry.activities}`,
+                `Sleep: ${entry.sleep_hours}`,
+                `Energy Level: ${entry.energy_level}/5`,
+                `Stress Level: ${entry.stress_level}/5`,
+                entry.location ? `Location: ${entry.location}` : null
+            ].filter(Boolean).join(' | ');
+            
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'bg-gray-50 rounded-lg p-4';
+            entryDiv.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="text-2xl">
+                                ${entry.mood === 'Very Happy' ? '😊' :
+                                  entry.mood === 'Happy' ? '🙂' :
+                                  entry.mood === 'Neutral' ? '😐' :
+                                  entry.mood === 'Sad' ? '😔' : '😢'}
+                            </div>
+                            <div>
+                                <div class="font-medium">${entry.mood}</div>
+                                <div class="text-sm text-gray-500">${date} at ${time} (${entry.local_timezone})</div>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-2">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><span class="font-medium">Activity:</span> ${entry.activities}</div>
+                                <div><span class="font-medium">Sleep:</span> ${entry.sleep_hours}</div>
+                                <div><span class="font-medium">Energy:</span> ${entry.energy_level}/5</div>
+                                <div><span class="font-medium">Stress:</span> ${entry.stress_level}/5</div>
+                                ${entry.location ? `<div class="col-span-2"><span class="font-medium">Location:</span> ${entry.location}</div>` : ''}
+                            </div>
+                        </div>
+                        ${entry.note ? `<div class="mt-2 text-sm text-gray-600 border-t pt-2"><span class="font-medium">Note:</span> ${entry.note}</div>` : ''}
+                    </div>
+                </div>
+            `;
+            container.appendChild(entryDiv);
+        });
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${
+            type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        } text-white`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+
+    // Initial load
+    loadMoodData();
+});
+</script>
+{% endblock %}
+{% endblock %}

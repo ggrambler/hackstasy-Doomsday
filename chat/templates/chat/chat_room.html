@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="chat-container">
+    <h3>Chat with {{ recipient.username }}</h3>
+    <div id="chat-messages" class="chat-messages">
+        {% for message in messages %}
+        <div class="{% if message.sender == user %}message-sent{% else %}message-received{% endif %}">
+            <strong>{{ message.sender.username }}:</strong> {{ message.content }}
+        </div>
+        {% endfor %}
+    </div>
+    <div class="chat-input">
+        <textarea id="message-input" placeholder="Type a message"></textarea>
+        <button id="send-button">Send</button>
+    </div>
+</div>
+
+<script>
+    // Establish WebSocket connection
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/{{ recipient.username }}/'  // WebSocket URL
+    );
+
+    const chatMessages = document.getElementById('chat-messages');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+
+    // When a message is received from WebSocket
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const newMessage = document.createElement('div');
+        newMessage.innerHTML = `<strong>${data.sender}:</strong> ${data.message}`;
+        newMessage.classList.add(data.sender === "{{ user.username }}" ? 'message-sent' : 'message-received');
+        chatMessages.appendChild(newMessage);
+    };
+
+    // Send message on button click
+    sendButton.onclick = function() {
+        const message = messageInput.value.trim();
+        if (message) {
+            chatSocket.send(JSON.stringify({ 'message': message, 'sender': "{{ user.username }}" }));
+            messageInput.value = '';
+        }
+    };
+</script>
+
+{% endblock %}
+
+<style>
+    .chat-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+    .chat-messages {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        margin-bottom: 10px;
+        padding: 10px;
+    }
+    .message-sent {
+        text-align: right;
+        background-color: #d1ffd6;
+        margin: 5px;
+        padding: 5px 10px;
+        border-radius: 10px;
+    }
+    .message-received {
+        text-align: left;
+        background-color: #f1f1f1;
+        margin: 5px;
+        padding: 5px 10px;
+        border-radius: 10px;
+    }
+</style>

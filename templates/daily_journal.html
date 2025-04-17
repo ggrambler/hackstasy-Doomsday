@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto p-8">
+    <div class="bg-gradient-to-br from-blue-600 via-indigo-500 to-purple-700 shadow-2xl rounded-3xl p-12">
+        <h1 class="text-6xl font-extrabold text-center text-white mb-8 drop-shadow-lg">
+            <i class="fas fa-book"></i> Daily Journal
+        </h1>
+        <p class="text-xl text-center text-gray-200 mb-10">
+            Write down your thoughts and reflect on your day. You can select a date to view or edit your past entries.
+        </p>
+
+        <!-- Journal Form -->
+        <div class="bg-white shadow-2xl rounded-2xl p-10 mb-10">
+            <div class="mb-6">
+                <label for="journal-date" class="block text-lg font-bold text-gray-700 mb-2">Select Date:</label>
+                <input type="date" id="journal-date" class="form-input w-full px-4 py-3 rounded-xl border border-gray-300">
+            </div>
+
+            <div class="mb-6">
+                <label for="journal-content" class="block text-lg font-bold text-gray-700 mb-2">Your Journal Entry:</label>
+                <textarea id="journal-content" rows="10" class="form-textarea w-full px-4 py-3 rounded-xl border border-gray-300"></textarea>
+            </div>
+
+            <button id="save-journal" class="w-full mt-6 py-4 text-xl font-bold text-white rounded-xl bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 focus:ring-4 focus:ring-green-300 transition-all transform hover:scale-110 shadow-lg">
+                <i class="fas fa-save"></i> Save Entry
+            </button>
+        </div>
+
+        <!-- Status Message -->
+        <div id="status-message" class="mt-6 text-center text-lg font-semibold text-gray-800 hidden"></div>
+
+        <!-- Saved Entries Section -->
+        <div class="bg-white shadow-2xl rounded-2xl p-10">
+            <h2 class="text-3xl font-bold text-gray-700 mb-6">Saved Journal Entries</h2>
+            <div id="saved-entries" class="space-y-6">
+                {% for entry in entries %}
+                <div class="p-6 bg-gray-100 rounded-lg shadow-md">
+                    <p class="text-lg font-semibold text-gray-800 mb-2">Date: {{ entry.date }}</p>
+                    <p class="text-gray-700">{{ entry.content }}</p>
+                </div>
+                {% empty %}
+                <p class="text-gray-600">No entries saved yet. Start journaling today!</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const dateInput = document.getElementById('journal-date');
+    const contentInput = document.getElementById('journal-content');
+    const saveButton = document.getElementById('save-journal');
+    const statusMessage = document.getElementById('status-message');
+    const savedEntries = document.getElementById('saved-entries');
+
+    // Fetch today's date by default
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+    fetchEntry(today);
+
+    dateInput.addEventListener('change', (e) => {
+        fetchEntry(e.target.value);
+    });
+
+    saveButton.addEventListener('click', async () => {
+        const date = dateInput.value;
+        const content = contentInput.value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        const response = await fetch("{% url 'daily_journal' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken,
+            },
+            body: new URLSearchParams({ date, content }),
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            statusMessage.innerText = result.message;
+            statusMessage.classList.remove('hidden', 'text-red-600');
+            statusMessage.classList.add('text-green-600');
+
+            // Add new entry to the saved entries list
+            const newEntry = document.createElement('div');
+            newEntry.classList.add('p-6', 'bg-gray-100', 'rounded-lg', 'shadow-md');
+            newEntry.innerHTML = `
+                <p class="text-lg font-semibold text-gray-800 mb-2">Date: ${date}</p>
+                <p class="text-gray-700">${content}</p>
+            `;
+            savedEntries.prepend(newEntry);
+        }
+    });
+
+    async function fetchEntry(date) {
+        const response = await fetch("{% url 'get_journal_entry' %}?date=" + date);
+        const result = await response.json();
+        if (result.status === 'success') {
+            contentInput.value = result.content;
+        }
+    }
+</script>
+{% endblock %}

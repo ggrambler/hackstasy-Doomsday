@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto p-8">
+    <div class="bg-gradient-to-br from-blue-600 via-indigo-500 to-purple-700 shadow-2xl rounded-3xl p-12">
+        <h1 class="text-4xl font-extrabold text-center text-white mb-8 drop-shadow-lg">
+            Group Chat with Video and Audio
+        </h1>
+
+        <!-- Chat Messages -->
+        <div id="chat-container" class="bg-white shadow-2xl rounded-xl p-6 mb-6 overflow-y-auto max-h-80">
+            <!-- Messages will be dynamically added here -->
+        </div>
+
+        <!-- Message Input -->
+        <div class="flex items-center gap-4">
+            <input
+                type="text"
+                id="message-input"
+                class="flex-grow px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                placeholder="Type your message"
+            />
+            <button id="send-button" class="bg-indigo-600 text-white px-4 py-3 rounded-xl hover:bg-indigo-700">
+                Send
+            </button>
+        </div>
+
+        <!-- Video Chat Controls -->
+        <div class="mt-8 text-center">
+            <button
+                id="start-video"
+                class="bg-green-500 text-white px-4 py-3 rounded-xl hover:bg-green-600"
+            >
+                Start Video Chat
+            </button>
+            <button
+                id="stop-video"
+                class="bg-red-500 text-white px-4 py-3 rounded-xl hover:bg-red-600 hidden"
+            >
+                Stop Video Chat
+            </button>
+        </div>
+
+        <!-- Video Chat Area -->
+        <div id="video-chat-area" class="mt-8 hidden">
+            <video id="local-video" autoplay muted class="w-full rounded-lg shadow-md"></video>
+            <div id="remote-videos" class="mt-4 grid grid-cols-2 gap-4"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Chat functionality
+    const chatContainer = document.getElementById('chat-container');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+
+    sendButton.addEventListener('click', () => {
+        const message = messageInput.value.trim();
+        if (message) {
+            addMessage('You', message);
+            messageInput.value = '';
+        }
+    });
+
+    function addMessage(sender, message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'mb-2';
+        messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // WebRTC functionality
+    const startVideoButton = document.getElementById('start-video');
+    const stopVideoButton = document.getElementById('stop-video');
+    const videoChatArea = document.getElementById('video-chat-area');
+    const localVideo = document.getElementById('local-video');
+    const remoteVideos = document.getElementById('remote-videos');
+
+    let localStream;
+    let peerConnections = {};
+
+    startVideoButton.addEventListener('click', async () => {
+        try {
+            // Get local media stream
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true,
+            });
+
+            // Display local video stream
+            localVideo.srcObject = localStream;
+
+            // Show video chat area
+            videoChatArea.classList.remove('hidden');
+            startVideoButton.classList.add('hidden');
+            stopVideoButton.classList.remove('hidden');
+
+            // Share stream with peers (this part requires signaling server setup)
+        } catch (error) {
+            console.error('Error accessing media devices:', error);
+        }
+    });
+
+    stopVideoButton.addEventListener('click', () => {
+        // Stop all tracks in the local stream
+        if (localStream) {
+            localStream.getTracks().forEach((track) => track.stop());
+        }
+
+        // Hide video chat area
+        videoChatArea.classList.add('hidden');
+        startVideoButton.classList.remove('hidden');
+        stopVideoButton.classList.add('hidden');
+    });
+
+    // Function to handle remote video streams (Requires signaling server)
+    function handleRemoteStream(stream, peerId) {
+        const remoteVideo = document.createElement('video');
+        remoteVideo.id = `remote-video-${peerId}`;
+        remoteVideo.srcObject = stream;
+        remoteVideo.autoplay = true;
+        remoteVideos.appendChild(remoteVideo);
+    }
+</script>
+
+<style>
+    #chat-container {
+        height: 300px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto p-8">
+    <div class="bg-gradient-to-br from-blue-600 via-indigo-500 to-purple-700 shadow-2xl rounded-3xl p-12">
+        <h1 class="text-6xl font-extrabold text-center text-white mb-8 drop-shadow-lg">
+            <i class="fas fa-stethoscope"></i> Disease Prediction System
+        </h1>
+        <p class="text-xl text-center text-gray-200 mb-10">
+            Select up to 5 symptoms to predict possible diseases accurately.
+        </p>
+        
+        <!-- Symptom Form -->
+        <form id="symptom-form" class="bg-white shadow-2xl rounded-2xl p-10">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for i in indices %}
+                    <div>
+                        <label for="symptom-{{ i }}" class="block text-gray-700 text-lg font-medium mb-3">
+                            Symptom {{ i|add:1 }}:
+                        </label>
+                        <select name="symptoms" id="symptom-{{ i }}" class="form-select block w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500">
+                            <option value="">Select Symptom {{ i|add:1 }}</option>
+                            {% for symptom in symptoms %}
+                                <option value="{{ symptom }}">{{ symptom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endfor %}
+            </div>
+            <button type="submit" class="w-full mt-10 py-4 text-xl font-bold text-white rounded-xl bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 focus:ring-4 focus:ring-green-300 transition-all transform hover:scale-110 shadow-lg">
+                <i class="fas fa-check-circle"></i> Predict Disease
+            </button>
+        </form>
+        
+        <!-- Prediction Result -->
+        <div id="result" class="mt-8 text-center text-2xl font-semibold text-gray-800"></div>
+        
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden mt-6 text-center text-lg font-semibold text-white animate-pulse">
+            <i class="fas fa-spinner fa-spin text-3xl"></i> Predicting...
+        </div>
+        
+        <!-- Disease Info Section -->
+        <div id="disease-info" class="hidden mt-12 bg-white shadow-xl rounded-xl p-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">Disease Information</h2>
+            <p id="disease-description" class="text-lg text-gray-700 mb-4"></p>
+            <h3 class="text-2xl font-semibold text-gray-800 mt-6">Precautions:</h3>
+            <ul id="disease-precautions" class="list-disc list-inside text-gray-700 mt-2"></ul>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Section -->
+<script>
+    document.getElementById('symptom-form').onsubmit = async function(event) {
+        event.preventDefault();
+        
+        const resultDiv = document.getElementById('result');
+        const loadingDiv = document.getElementById('loading');
+        const diseaseInfoDiv = document.getElementById('disease-info');
+        const diseaseDesc = document.getElementById('disease-description');
+        const diseasePrecautions = document.getElementById('disease-precautions');
+        
+        resultDiv.innerHTML = '';
+        diseaseInfoDiv.classList.add('hidden');
+        loadingDiv.classList.remove('hidden'); // Show loading indicator
+        
+        const formData = new FormData(this);
+        
+        try {
+            // Send prediction request
+            const response = await fetch("{% url 'predict_disease' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                }
+            });
+            const result = await response.json();
+            loadingDiv.classList.add('hidden'); // Hide loading indicator
+            
+            if (result.status === 'success') {
+                resultDiv.innerHTML = 
+                    `<span class='text-green-600'>Predicted Disease: ${result.prediction}</span>`;
+                
+                // Fetch disease information
+                const infoResponse = await fetch("{% url 'disease_info' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                    body: JSON.stringify({ disease: result.prediction }),
+                });
+                const info = await infoResponse.json();
+                
+                diseaseDesc.innerText = info.description || 'No description available.';
+                diseasePrecautions.innerHTML = info.precautions ? 
+                    info.precautions.map(precaution => `<li>${precaution}</li>`).join('') : 
+                    '<li>No precautions available.</li>';
+                
+                diseaseInfoDiv.classList.remove('hidden');
+            } else {
+                resultDiv.innerHTML = 
+                    `<span class='text-red-600'>Error: ${result.message}</span>`;
+            }
+        } catch (error) {
+            loadingDiv.classList.add('hidden'); // Hide loading indicator
+            resultDiv.innerHTML = 
+                `<span class='text-red-600'>An error occurred: ${error.message}</span>`;
+        }
+    };
+</script>
+{% endblock %}
